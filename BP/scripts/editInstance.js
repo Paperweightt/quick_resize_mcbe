@@ -2,9 +2,40 @@ import { world, Player, system, MolangVariableMap, ItemStack } from "@minecraft/
 import { PARTICLE_GROUP, TYPE_IDS } from "./constants"
 import { Vector } from "./utils/vector"
 
-world.afterEvents.playerPlaceBlock.subscribe((data) => {
+world.afterEvents.playerPlaceBlock.subscribe(async (data) => {
     const { player, block } = data
-    new EditInstance(player, block)
+
+    await system.waitTicks(8)
+
+    player.editTest.location = block.location
+})
+
+Player.prototype.editTest = {
+    ticks: 0,
+    location: undefined,
+}
+
+system.runInterval(() => {
+    for (const player of world.getAllPlayers()) {
+        const ray = player.getBlockFromViewDirection({ maxDistance: 7 })
+        const previousLocation = player.editTest.location
+        const instance = EditInstance.get(player.id)
+
+        if (instance?.mode === "edit") continue
+
+        if (!ray) continue
+        const { block } = ray
+
+        if (previousLocation && Vector.equals(block.location, previousLocation)) {
+            player.editTest.ticks++
+        } else {
+            player.editTest.ticks = 0
+        }
+
+        if (player.editTest.ticks === 10) {
+            new EditInstance(player, block)
+        }
+    }
 })
 
 world.afterEvents.itemStartUse.subscribe((data) => {
@@ -100,6 +131,12 @@ class EditInstance {
      * @param {EditInstance} instance
      */
     static add(id, instance) {
+        const oldInstance = this.get(id)
+
+        if (oldInstance) {
+            oldInstance.resetPlayer()
+        }
+
         this.list[id] = instance
     }
 
@@ -153,11 +190,6 @@ class EditInstance {
             if (Vector.equals(this.location, block)) {
                 this.displaySelection()
 
-                // corner check
-                // faceLocation.x === 0 &&
-                // (faceLocation.y < 0.2 || faceLocation.y > 0.8) &&
-                // (faceLocation.z < 0.2 || faceLocation.z > 0.8)
-
                 if (
                     (faceLocation.x === 0 &&
                         (faceLocation.y < 0.3 ||
@@ -176,8 +208,10 @@ class EditInstance {
                             faceLocation.y > 0.7))
                 ) {
                     if (!this.playerHasScaleItem()) this.givePlayerScaleItem()
-                } else if (this.playerHasScaleItem()) this.resetPlayer()
-            } else if (this.playerHasScaleItem()) {
+                } else {
+                    this.resetPlayer()
+                }
+            } else {
                 this.resetPlayer()
             }
         } else if (this.mode === "edit") {
@@ -190,7 +224,7 @@ class EditInstance {
     }
 
     resetPlayer() {
-        this.slot.setItem(this.origonalItem)
+        if (this.playerHasScaleItem()) this.slot.setItem(this.origonalItem)
 
         delete this.slot
         delete this.origonalItem
