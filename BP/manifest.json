@@ -1,0 +1,38 @@
+{
+    "format_version": 2,
+    "header": {
+        "name": "Quick_Scale",
+        "version": [1, 0, 0],
+        "description": "$desc",
+        "uuid": "cb7aaa67-a2f3-4aa5-ac87-41588f9475aa",
+        "min_engine_version": [1, 21, 121]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "73500528-a136-436a-96d2-a3d26b63c1d1",
+            "version": [1, 0, 0]
+        },
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "3b0d61dd-a98e-4f8f-a8bf-0cc2fb6ba9cd",
+            "version": [1, 0, 0],
+            "entry": "scripts/main.js"
+        }
+    ],
+    "dependencies": [
+        {
+            "version": [1, 0, 0],
+            "uuid": "8e586c8c-a135-471c-8968-c7a460ff9b67"
+        },
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.4.0"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "2.0.0"
+        }
+    ]
+}

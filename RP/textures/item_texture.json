@@ -1,0 +1,9 @@
+{
+    "texture_name": "atlas.items",
+    "resource_pack_name": "qsc",
+    "texture_data": {
+        "qsc:resizer": {
+            "textures": "textures/items/resize_item"
+        }
+    }
+}

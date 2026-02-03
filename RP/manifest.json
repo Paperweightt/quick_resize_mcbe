@@ -1,0 +1,23 @@
+{
+  "format_version": 1,
+  "header": {
+    "name": "Quick_Scale",
+    "description": "$desc",
+    "uuid": "8e586c8c-a135-471c-8968-c7a460ff9b67",
+    "version": [1, 13, 0],
+    "min_engine_version": [1, 12, 1]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "cd4787f0-a978-4379-8213-4d052ff73ea9",
+      "version": [1, 0, 0]
+    }
+  ],
+  "dependencies": [
+    {
+      "version": [1, 0, 0],
+      "uuid": "cb7aaa67-a2f3-4aa5-ac87-41588f9475aa"
+    }
+  ]
+}
