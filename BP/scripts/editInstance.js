@@ -140,8 +140,16 @@ class EditInstance {
         const size = Vector.subtract(maxLocation, minLocation)
 
         if (system.currentTick % 4 === 0) {
+            let color
+
+            if (this.player.customIsShifting) {
+                color = { red: 1, green: 0, blue: 0 }
+            } else {
+                color = { red: 1, green: 1, blue: 1 }
+            }
+
             try {
-                spawnParticleBox(this.dimension, minLocation, size, PARTICLE_GROUP.EDIT)
+                spawnParticleBox(this.dimension, minLocation, size, PARTICLE_GROUP.EDIT, color)
             } catch (e) {}
         }
 
@@ -233,6 +241,19 @@ class EditInstance {
         }
     }
 
+    removeBlocks() {
+        const { minLocation, maxLocation } = this.getStartEnd()
+
+        for (let x = minLocation.x; x < maxLocation.x; x++) {
+            for (let y = minLocation.y; y < maxLocation.y; y++) {
+                for (let z = minLocation.z; z < maxLocation.z; z++) {
+                    const location = new Vector(x, y, z)
+                    this.dimension.setBlockType(location, "minecraft:air")
+                }
+            }
+        }
+    }
+
     /**
      * @returns {{minLocation:Vector,maxLocation:Vector}}
      */
@@ -259,7 +280,11 @@ class EditInstance {
 
     apply() {
         try {
-            this.placeBlocks()
+            if (this.player.customIsShifting) {
+                this.removeBlocks()
+            } else {
+                this.placeBlocks()
+            }
         } catch (error) {
             this.player.onScreenDisplay.setActionBar("§l§4Out of Range")
         }
@@ -277,8 +302,8 @@ function getEyeLocation(player) {
     return location
 }
 
-function spawnParticleBox(dimension, location, size, particles) {
-    const color = { red: 0.5, green: 0.5, blue: 0.5 }
+function spawnParticleBox(dimension, location, size, particles, rgb) {
+    const color = rgb || { red: 1, green: 0, blue: 0 }
     let zFightingOffset = 0.01625
 
     const getMolang = (xSize, ySize, xOffset = 0, yOffset = 0, zOffset = 0) => {

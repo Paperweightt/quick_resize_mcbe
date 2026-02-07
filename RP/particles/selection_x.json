@@ -6,12 +6,12 @@
             "identifier": "qsc:selection_axis_x",
             "basic_render_parameters": {
                 "material": "particles_blend",
-                "texture": "textures/blocks/concrete_black"
+                "texture": "textures/blocks/concrete_white"
             }
         },
         "components": {
             "minecraft:emitter_initialization": {
-                "creation_expression": "variable.t = 0.5;variable.p = 8;"
+                "creation_expression": "variable.t = 0.2;variable.p = 8;"
             },
             "minecraft:emitter_rate_instant": {
                 "num_particles": 1
