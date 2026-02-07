@@ -1,39 +1,18 @@
-import { world, Player, system, MolangVariableMap, ItemStack } from "@minecraft/server"
+import { world, Player, system, MolangVariableMap } from "@minecraft/server"
 import { PARTICLE_GROUP, TYPE_IDS } from "./constants"
 import { Vector } from "./utils/vector"
-
-world.afterEvents.playerPlaceBlock.subscribe((data) => {
-    const { player, block } = data
-
-    new EditInstance(player, block)
-})
-
-world.afterEvents.playerBreakBlock.subscribe((data) => {
-    const { player, block } = data
-
-    const instance = EditInstance.get(player.id)
-
-    if (!instance) return
-
-    if (Vector.equals(block.location, instance.location)) {
-        instance.removePlayerItem()
-        instance.remove()
-    }
-})
+import { Particle } from "./utils/particle"
 
 world.afterEvents.itemStartUse.subscribe((data) => {
     const { source, itemStack } = data
 
     if (itemStack.typeId !== TYPE_IDS.SCALE_ITEM) return
 
-    const instance = EditInstance.get(source.id)
-
-    if (!instance || instance.mode === "edit") return
-
     const ray = source.getBlockFromViewDirection()
 
     if (!ray) return
 
+    const instance = new EditInstance(data.source, ray.block)
     const location = Vector.add(ray.block.location, ray.faceLocation)
 
     instance.createEdit(location, ray.face)
@@ -56,10 +35,7 @@ world.afterEvents.playerHotbarSelectedSlotChange.subscribe((data) => {
 
     const instance = EditInstance.get(player.id)
 
-    if (!instance || instance.mode === "highlight") return
-
-    instance.removePlayerItem()
-    instance.remove()
+    if (instance) instance.remove()
 })
 
 world.afterEvents.playerLeave.subscribe((data) => {
@@ -80,7 +56,6 @@ world.afterEvents.entitySpawn.subscribe((data) => {
     const instance = EditInstance.get(entity.id)
 
     if (instance) {
-        instance.removePlayerItem()
         instance.remove()
     } else {
         const container = entity.getComponent("inventory").container
@@ -114,12 +89,6 @@ class EditInstance {
      * @param {EditInstance} instance
      */
     static add(id, instance) {
-        const oldInstance = this.get(id)
-
-        if (oldInstance) {
-            oldInstance.removePlayerItem()
-        }
-
         this.list[id] = instance
     }
 
@@ -140,9 +109,6 @@ class EditInstance {
             }
         })
     }
-
-    /** @type {"standby"|"highlight"|"edit"} */
-    mode = "standby"
 
     #activationCounter = 0
 
@@ -170,49 +136,20 @@ class EditInstance {
     }
 
     run() {
-        if (this.mode === "standby") {
-            const ray = this.player.getBlockFromViewDirection({ maxDistance: 7 })
+        const { minLocation, maxLocation } = this.getStartEnd()
+        const size = Vector.subtract(maxLocation, minLocation)
 
-            this.activationCounter--
-
-            if (ray) {
-                if (Vector.equals(ray.block.location, this.location)) this.activationCounter++
-                if (this.locationIncludesEdges(ray.faceLocation)) this.activationCounter += 3
-            }
-            if (Vector.equals(new Vector(0), this.player.getVelocity())) this.activationCounter++
-
-            if (this.activationCounter > 12) this.mode = "highlight"
-        } else if (this.mode === "highlight") {
-            const ray = this.player.getBlockFromViewDirection()
-
-            if (!ray) {
-                if (this.playerHasItem()) this.removePlayerItem()
-                return
-            }
-
-            const { block, faceLocation } = ray
-
-            if (Vector.equals(this.location, block)) {
-                this.displaySelection()
-
-                if (this.locationIncludesEdges(faceLocation)) {
-                    if (!this.playerHasItem()) this.givePlayerItem()
-                } else {
-                    this.removePlayerItem()
-                }
-            } else {
-                this.removePlayerItem()
-            }
-        } else if (this.mode === "edit") {
-            const { minLocation, maxLocation } = this.getStartEnd()
-            const size = Vector.subtract(maxLocation, minLocation)
-
-            if (system.currentTick % 4 === 0) {
-                displayParticles(this.dimension, minLocation, size, PARTICLE_GROUP.EDIT)
-            }
-
-            this.player.onScreenDisplay.setActionBar(size.stringifyValues())
+        if (system.currentTick % 4 === 0) {
+            try {
+                spawnParticleBox(this.dimension, minLocation, size, PARTICLE_GROUP.EDIT)
+            } catch (e) {}
         }
+
+        try {
+            Particle.boxEdges(TYPE_IDS.PARTICLE, minLocation, size, this.dimension, 0.1)
+        } catch (e) {}
+
+        this.player.onScreenDisplay.setActionBar("§l" + size.stringifyValues())
     }
 
     locationIncludesEdges(location) {
@@ -227,31 +164,6 @@ class EditInstance {
                 return false
         }
         return true
-    }
-
-    removePlayerItem() {
-        if (this.playerHasItem()) this.slot.setItem(this.origonalItem)
-
-        delete this.slot
-        delete this.origonalItem
-    }
-
-    /** @returns {boolean} */
-    playerHasItem() {
-        if (!this.slot) return false
-
-        return this.slot.getItem()?.typeId === TYPE_IDS.SCALE_ITEM
-    }
-
-    givePlayerItem() {
-        const container = this.player.getComponent("inventory").container
-        const itemStack = new ItemStack(TYPE_IDS.SCALE_ITEM)
-
-        itemStack.lockMode = "slot"
-
-        this.slot = container.getSlot(this.player.selectedSlotIndex)
-        this.origonalItem = this.slot.getItem()
-        this.slot.setItem(itemStack)
     }
 
     getPointer() {
@@ -283,14 +195,25 @@ class EditInstance {
     createEdit(location, face) {
         const { axis, rotation } = EditInstance.faceToAxisRotation[face]
 
-        this.mode = "edit"
         this.editLocation = location
+
+        if (face === "Up" || face === "East" || face === "South") {
+            const r = this.editLocation[axis] % 1
+            if (r === 0) this.editLocation[axis] += 1
+        }
+
+        // system.runInterval(() => {
+        //     this.dimension.spawnParticle("minecraft:basic_flame_particle", this.editLocation)
+        // })
+
         this.axis = axis
         this.rotation = rotation
     }
 
     displaySelection() {
-        displayParticles(this.dimension, this.location, new Vector(1), PARTICLE_GROUP.HOVER)
+        try {
+            spawnParticleBox(this.dimension, this.location, new Vector(1), PARTICLE_GROUP.HOVER)
+        } catch (e) {}
     }
 
     remove() {
@@ -310,14 +233,15 @@ class EditInstance {
         }
     }
 
+    /**
+     * @returns {{minLocation:Vector,maxLocation:Vector}}
+     */
     getStartEnd() {
         let minLocation = new Vector()
         let maxLocation = new Vector()
 
         const pointer = this.getPointer().add(this.editLocation)
         const location = new Vector(0.5).add(this.location)
-
-        location[this.axis] -= 0.5
 
         minLocation.x = Math.min(location.x, pointer.x)
         minLocation.y = Math.min(location.y, pointer.y)
@@ -327,8 +251,6 @@ class EditInstance {
         maxLocation.y = Math.max(location.y, pointer.y)
         maxLocation.z = Math.max(location.z, pointer.z)
 
-        maxLocation[this.axis]++
-
         return {
             minLocation: minLocation.floor(),
             maxLocation: maxLocation.ceil(),
@@ -336,8 +258,11 @@ class EditInstance {
     }
 
     apply() {
-        this.placeBlocks()
-        this.removePlayerItem()
+        try {
+            this.placeBlocks()
+        } catch (error) {
+            this.player.onScreenDisplay.setActionBar("§l§4Out of Range")
+        }
         this.remove()
     }
 }
@@ -352,9 +277,9 @@ function getEyeLocation(player) {
     return location
 }
 
-function displayParticles(dimension, location, size, particles) {
+function spawnParticleBox(dimension, location, size, particles) {
     const color = { red: 0.5, green: 0.5, blue: 0.5 }
-    let zFightingOffset = 0.003
+    let zFightingOffset = 0.01625
 
     const getMolang = (xSize, ySize, xOffset = 0, yOffset = 0, zOffset = 0) => {
         const molang = new MolangVariableMap()
@@ -370,7 +295,7 @@ function displayParticles(dimension, location, size, particles) {
 
         return molang
     }
-    //.10325 * 10
+
     dimension.spawnParticle(
         particles[0],
         new Vector(size.x / 2, size.y / 2, -zFightingOffset).add(location),
@@ -381,18 +306,6 @@ function displayParticles(dimension, location, size, particles) {
         particles[0],
         new Vector(size.x / 2, size.y / 2, zFightingOffset + size.z).add(location),
         getMolang(size.x, size.y),
-    )
-
-    dimension.spawnParticle(
-        particles[1],
-        new Vector(size.x / 2, -zFightingOffset, size.z / 2).add(location),
-        getMolang(size.x, size.z),
-    )
-
-    dimension.spawnParticle(
-        particles[1],
-        new Vector(size.x / 2, zFightingOffset + size.y, size.z / 2).add(location),
-        getMolang(size.x, size.z),
     )
 
     dimension.spawnParticle(

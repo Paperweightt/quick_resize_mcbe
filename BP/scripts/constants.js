@@ -2,7 +2,7 @@ export const PACK_ID = "qsc"
 
 export const TYPE_IDS = {
     SCALE_ITEM: PACK_ID + ":resizer",
-    // SCALE_ITEM: "minecraft:netherite_spear",
+    PARTICLE: PACK_ID + ":line",
 }
 
 export const PARTICLE_GROUP = {
