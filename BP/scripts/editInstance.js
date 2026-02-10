@@ -133,20 +133,6 @@ class EditInstance {
         this.player.onScreenDisplay.setActionBar("§l" + size.stringifyValues())
     }
 
-    locationIncludesEdges(location) {
-        if (location.x === 0) {
-            if (location.y > 0.3 && location.y < 0.7 && location.z > 0.3 && location.z < 0.7)
-                return false
-        } else if (location.y === 0) {
-            if (location.x > 0.3 && location.x < 0.7 && location.z > 0.3 && location.z < 0.7)
-                return false
-        } else if (location.z === 0) {
-            if (location.y > 0.3 && location.y < 0.7 && location.x > 0.3 && location.x < 0.7)
-                return false
-        }
-        return true
-    }
-
     getPointer() {
         const inverseRotation = {
             y: (-this.rotation.y * Math.PI) / 180,
@@ -183,18 +169,8 @@ class EditInstance {
             if (r === 0) this.editLocation[axis] += 1
         }
 
-        // system.runInterval(() => {
-        //     this.dimension.spawnParticle("minecraft:basic_flame_particle", this.editLocation)
-        // })
-
         this.axis = axis
         this.rotation = rotation
-    }
-
-    displaySelection() {
-        try {
-            spawnParticleBox(this.dimension, this.location, new Vector(1), PARTICLE_GROUP.HOVER)
-        } catch (e) {}
     }
 
     remove() {
