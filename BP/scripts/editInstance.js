@@ -25,27 +25,19 @@ world.afterEvents.itemReleaseUse.subscribe((data) => {
 
     const instance = EditInstance.get(source.id)
 
-    if (!instance) return
-
-    instance.apply()
+    if (instance) instance.apply()
 })
 
 world.afterEvents.playerHotbarSelectedSlotChange.subscribe((data) => {
-    const { player } = data
-
-    const instance = EditInstance.get(player.id)
+    const instance = EditInstance.get(data.player.id)
 
     if (instance) instance.remove()
 })
 
 world.afterEvents.playerLeave.subscribe((data) => {
-    const { playerId } = data
+    const instance = EditInstance.get(data.playerId)
 
-    const instance = EditInstance.get(playerId)
-
-    if (!instance) return
-
-    instance.remove()
+    if (instance) instance.remove()
 })
 
 world.afterEvents.entitySpawn.subscribe((data) => {
@@ -55,16 +47,7 @@ world.afterEvents.entitySpawn.subscribe((data) => {
 
     const instance = EditInstance.get(entity.id)
 
-    if (instance) {
-        instance.remove()
-    } else {
-        const container = entity.getComponent("inventory").container
-
-        for (let i = 0; i < container.size; i++) {
-            const item = container.getItem(i)
-            if (item?.typeId === TYPE_IDS.SCALE_ITEM) container.setItem(i, undefined)
-        }
-    }
+    if (instance) instance.remove()
 })
 
 class EditInstance {
@@ -79,7 +62,7 @@ class EditInstance {
         North: { axis: "z", rotation: { x: 270, y: 0 } },
     }
 
-    /** @returns {EditInstance} */
+    /** @returns {EditInstance|undefined} */
     static get(id) {
         return this.list[id]
     }
@@ -110,16 +93,6 @@ class EditInstance {
         })
     }
 
-    #activationCounter = 0
-
-    get activationCounter() {
-        return this.#activationCounter
-    }
-
-    set activationCounter(i) {
-        this.#activationCounter = Math.max(i, 0)
-    }
-
     /**
      * @param {Player} player
      * @param {import("@minecraft/server").Block} block
@@ -143,7 +116,7 @@ class EditInstance {
             let color
 
             if (this.player.customIsShifting) {
-                color = { red: 1, green: 0, blue: 0 }
+                color = { red: 1, green: 0.5, blue: 0.5 }
             } else {
                 color = { red: 1, green: 1, blue: 1 }
             }

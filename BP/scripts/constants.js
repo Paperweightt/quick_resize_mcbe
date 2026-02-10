@@ -6,11 +6,6 @@ export const TYPE_IDS = {
 }
 
 export const PARTICLE_GROUP = {
-    HOVER: [
-        PACK_ID + ":highlight_axis_x",
-        PACK_ID + ":highlight_axis_y",
-        PACK_ID + ":highlight_axis_z",
-    ],
     EDIT: [
         PACK_ID + ":selection_axis_x",
         PACK_ID + ":selection_axis_y",
