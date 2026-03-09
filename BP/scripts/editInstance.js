@@ -270,37 +270,42 @@ function spawnParticleBox(dimension, location, size, particles, rgb) {
         return molang
     }
 
-    dimension.spawnParticle(
+    const particle = (typeId, location, molang) => {
+        try {
+            dimension.spawnParticle(typeId, location, molang)
+        } catch (error) {}
+    }
+
+    particle(
         particles[0],
         new Vector(size.x / 2, size.y / 2, -zFightingOffset).add(location),
         getMolang(size.x, size.y),
     )
 
-    dimension.spawnParticle(
+    particle(
         particles[0],
         new Vector(size.x / 2, size.y / 2, zFightingOffset + size.z).add(location),
         getMolang(size.x, size.y),
     )
 
-    dimension.spawnParticle(
+    particle(
         particles[1],
         new Vector(size.x / 2, -zFightingOffset, size.z / 2).add(location),
         getMolang(size.x, size.z),
     )
 
-    dimension.spawnParticle(
+    particle(
         particles[1],
         new Vector(size.x / 2, zFightingOffset + size.y, size.z / 2).add(location),
         getMolang(size.x, size.z),
     )
 
-    dimension.spawnParticle(
+    particle(
         particles[2],
         new Vector(-zFightingOffset, size.y / 2, size.z / 2).add(location),
         getMolang(size.z, size.y),
     )
-
-    dimension.spawnParticle(
+    particle(
         particles[2],
         new Vector(zFightingOffset + size.x, size.y / 2, size.z / 2).add(location),
         getMolang(size.z, size.y),
