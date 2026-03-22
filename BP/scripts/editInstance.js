@@ -251,7 +251,7 @@ function getEyeLocation(player) {
     return location
 }
 
-function spawnParticleBox(dimension, location, size, particles, rgb) {
+export function spawnParticleBox(dimension, location, size, particles, rgb) {
     const color = rgb || { red: 1, green: 0, blue: 0 }
     let zFightingOffset = 0.01625
 
