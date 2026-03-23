@@ -1,0 +1,16 @@
+{
+    "format_version": "1.17.41",
+    "minecraft:recipe_shaped": {
+        "description": {
+            "identifier": "qsc:resizer"
+        },
+        "tags": ["crafting_table", "altar"],
+        "pattern": [" NB", "NRN", "BN "],
+        "key": {
+            "N": "minecraft:gold_nugget",
+            "R": "minecraft:blaze_rod",
+            "B": "minecraft:gold_ingot"
+        },
+        "result": "qsc:resizer"
+    }
+}

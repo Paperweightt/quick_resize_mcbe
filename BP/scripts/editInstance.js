@@ -62,6 +62,8 @@ class EditInstance {
         North: { axis: "z", rotation: { x: 270, y: 0 } },
     }
 
+    static blockWhitelist = ["minecraft:bedrock", "minecraft:barrier", "minecraft:border_block"]
+
     /** @returns {EditInstance|undefined} */
     static get(id) {
         return this.list[id]
@@ -102,6 +104,7 @@ class EditInstance {
         this.block = block
         this.id = player.id
         this.permutation = block.permutation
+        this.itemStackMatch = this.permutation.getItemStack()
         this.dimension = block.dimension
         this.location = block.location
 
@@ -179,28 +182,109 @@ class EditInstance {
 
     placeBlocks() {
         const { minLocation, maxLocation } = this.getStartEnd()
+        const isSurvival = this.player.getGameMode() === "survival"
+        let fills = 0
 
-        for (let x = minLocation.x; x < maxLocation.x; x++) {
+        placeLoop: for (let x = minLocation.x; x < maxLocation.x; x++) {
             for (let y = minLocation.y; y < maxLocation.y; y++) {
                 for (let z = minLocation.z; z < maxLocation.z; z++) {
                     const location = new Vector(x, y, z)
-                    this.dimension.setBlockPermutation(location, this.permutation)
+                    const block = this.dimension.getBlock(location)
+
+                    if (block.typeId !== this.permutation.type.id) {
+                        if (isSurvival) {
+                            if (
+                                EditInstance.blockWhitelist.some(
+                                    (string) => block.typeId === string,
+                                )
+                            )
+                                continue
+                            if (fills + 1 > this.getAvailableItemsAmount()) break placeLoop
+                        }
+
+                        fills++
+                    }
+
+                    block.setPermutation(this.permutation)
                 }
+            }
+        }
+
+        this.player.sendMessage(`${fills} blocks filled`)
+
+        if (isSurvival) {
+            this.removeMatchedItems(fills)
+        }
+    }
+
+    /** @param {number} sum */
+    removeMatchedItems(sum) {
+        const container = this.player.getComponent("inventory").container
+
+        for (let i = 0; i < container.size; i++) {
+            const item = container.getItem(i)
+
+            if (item && this.itemStackMatch.isStackableWith(item)) {
+                let diff = Math.min(item.amount, sum)
+
+                console.log("diff", diff)
+
+                if (item.amount - diff === 0) {
+                    container.setItem(i)
+                } else {
+                    item.amount -= diff
+                    container.setItem(i, item)
+                }
+
+                sum -= diff
+
+                if (sum === 0) break
             }
         }
     }
 
+    /** @return {number} */
+    getAvailableItemsAmount() {
+        let sum = 0
+        const container = this.player.getComponent("inventory").container
+
+        for (let i = 0; i < container.size; i++) {
+            const item = container.getItem(i)
+
+            if (item && this.itemStackMatch.isStackableWith(item)) {
+                sum += item.amount
+            }
+        }
+
+        return sum
+    }
+
     removeBlocks() {
         const { minLocation, maxLocation } = this.getStartEnd()
+        const isSurvival = this.player.getGameMode() === "survival"
+        let fills = 0
 
         for (let x = minLocation.x; x < maxLocation.x; x++) {
             for (let y = minLocation.y; y < maxLocation.y; y++) {
                 for (let z = minLocation.z; z < maxLocation.z; z++) {
                     const location = new Vector(x, y, z)
-                    this.dimension.setBlockType(location, "minecraft:air")
+                    const block = this.dimension.getBlock(location)
+
+                    if (
+                        isSurvival &&
+                        EditInstance.blockWhitelist.some((string) => block.typeId === string)
+                    )
+                        continue
+
+                    if (block.typeId !== "minecraft:air") {
+                        this.dimension.setBlockType(location, "minecraft:air")
+                        fills++
+                    }
                 }
             }
         }
+
+        this.player.sendMessage(`${fills} blocks filled`)
     }
 
     /**
@@ -235,6 +319,7 @@ class EditInstance {
                 this.placeBlocks()
             }
         } catch (error) {
+            // console.log(error)
             this.player.onScreenDisplay.setActionBar("§l§4Out of Range")
         }
         this.remove()

@@ -2,7 +2,7 @@
     "format_version": 2,
     "header": {
         "name": "Quick_Scale",
-        "version": [1, 14, 0],
+        "version": [1, 15, 0],
         "description": "Build and Destroy walls faster then ever",
         "uuid": "cb7aaa67-a2f3-4aa5-ac87-41588f9475aa",
         "min_engine_version": [1, 21, 121]
@@ -23,7 +23,7 @@
     ],
     "dependencies": [
         {
-            "version": [1, 14, 0],
+            "version": [1, 15, 0],
             "uuid": "8e586c8c-a135-471c-8968-c7a460ff9b67"
         },
         {
